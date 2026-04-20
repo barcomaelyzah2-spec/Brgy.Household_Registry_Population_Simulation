@@ -1,0 +1,271 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Barangay Household Registry System</title>
+
+<style>
+body {
+  font-family: Arial;
+  background: linear-gradient(to right, #e0f2fe, #f8fafc);
+  margin: 0;
+  padding: 20px;
+}
+
+h1 {
+  text-align: center;
+  color: #1e3a8a;
+}
+
+.container {
+  max-width: 1100px;
+  margin: auto;
+}
+
+.stats {
+  display: flex;
+  justify-content: space-around;
+  background: #1e3a8a;
+  color: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 20px;
+}
+
+.card {
+  background: white;
+  padding: 15px;
+  border-radius: 10px;
+  margin-bottom: 15px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+input, select, button {
+  padding: 10px;
+  margin: 5px;
+  width: calc(100% - 22px);
+}
+
+button {
+  background: #2563eb;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+
+button:hover {
+  background: #1d4ed8;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th, td {
+  border: 1px solid #ddd;
+  padding: 8px;
+  text-align: center;
+}
+
+th {
+  background: #1e3a8a;
+  color: white;
+}
+</style>
+</head>
+
+<body>
+
+<h1>Barangay Household Registry and Population Simulation System</h1>
+
+<div class="container">
+
+<!-- STATS -->
+<div class="stats">
+  <div>Population: <span id="population">0</span></div>
+  <div>Houses: <span id="houses">0</span></div>
+  <div>Residents: <span id="totalResidents">0</span></div>
+</div>
+
+<!-- ADD -->
+<div class="card">
+<h3>Register Resident</h3>
+<input type="text" id="name" placeholder="Full Name">
+<input type="text" id="house" placeholder="House No.">
+<input type="number" id="members" placeholder="Members in House">
+<select id="purok">
+  <option value="">Select Purok</option>
+  <option>Purok Langka</option>
+  <option>Purok Cacao</option>
+  <option>Purok Paho</option>
+  <option>Purok Kawayan</option>
+  <option>Purok Casava</option>
+  <option>Purok Piña</option>
+  <option>Purok Feria</option>
+  <option>Purok Caemito</option>
+  <option>Hda. Mapa</option>
+  <option>Hda. Pucatod</option>
+  
+</select>
+<button onclick="addResident()">Register</button>
+</div>
+
+<!-- SEARCH -->
+<div class="card">
+<h3>Search</h3>
+<input type="text" id="search" placeholder="Search..." onkeyup="searchResident()">
+</div>
+
+<!-- TABLE -->
+<div class="card">
+<h3>Residents List</h3>
+<table>
+<thead>
+<tr>
+<th>ID</th>
+<th>Name</th>
+<th>House</th>
+<th>Members</th>
+<th>Purok</th>
+<th>Date Registered</th>
+<th>Actions</th>
+</tr>
+</thead>
+<tbody id="list"></tbody>
+</table>
+</div>
+
+</div>
+
+<script>
+let residents = JSON.parse(localStorage.getItem("residents")) || [];
+
+window.onload = updateSystem;
+
+function saveData() {
+  localStorage.setItem("residents", JSON.stringify(residents));
+}
+
+function addResident() {
+  let name = document.getElementById("name").value;
+  let house = document.getElementById("house").value;
+  let members = parseInt(document.getElementById("members").value);
+  let purok = document.getElementById("purok").value;
+
+  if (!name || !house || !members || !purok) {
+    alert("Fill all fields!");
+    return;
+  }
+
+  let newResident = {
+    id: Date.now(),
+    name,
+    house,
+    members,
+    purok,
+    date: new Date().toLocaleDateString()
+  };
+
+  residents.push(newResident);
+
+  saveData();
+  clearInputs();
+  updateSystem();
+}
+
+function clearInputs() {
+  name.value = "";
+  house.value = "";
+  members.value = "";
+  purok.value = "";
+}
+
+function updateSystem() {
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  let totalPopulation = 0;
+  let houses = new Set();
+
+  residents.forEach((r, index) => {
+    totalPopulation += r.members;
+    houses.add(r.house);
+
+    list.innerHTML += `
+    <tr>
+      <td>${r.id}</td>
+      <td>${r.name}</td>
+      <td>${r.house}</td>
+      <td>${r.members}</td>
+      <td>${r.purok}</td>
+      <td>${r.date}</td>
+      <td>
+        <button onclick="editResident(${index})">Edit</button>
+        <button onclick="deleteResident(${index})">Delete</button>
+      </td>
+    </tr>`;
+  });
+
+  document.getElementById("population").innerText = totalPopulation;
+  document.getElementById("houses").innerText = houses.size;
+  document.getElementById("totalResidents").innerText = residents.length;
+}
+
+function editResident(index) {
+  let r = residents[index];
+
+  let name = prompt("Name:", r.name);
+  let house = prompt("House:", r.house);
+  let members = prompt("Members:", r.members);
+  let purok = prompt("Purok:", r.purok);
+
+  if (name && house && members && purok) {
+    residents[index] = {
+      ...r,
+      name,
+      house,
+      members: parseInt(members),
+      purok
+    };
+
+    saveData();
+    updateSystem();
+  }
+}
+
+function deleteResident(index) {
+  if (confirm("Delete this record?")) {
+    residents.splice(index, 1);
+    saveData();
+    updateSystem();
+  }
+}
+
+function searchResident() {
+  let keyword = document.getElementById("search").value.toLowerCase();
+  let list = document.getElementById("list");
+  list.innerHTML = "";
+
+  residents
+    .filter(r => r.name.toLowerCase().includes(keyword))
+    .forEach((r, index) => {
+      list.innerHTML += `
+      <tr>
+        <td>${r.id}</td>
+        <td>${r.name}</td>
+        <td>${r.house}</td>
+        <td>${r.members}</td>
+        <td>${r.purok}</td>
+        <td>${r.date}</td>
+        <td>
+          <button onclick="editResident(${index})">Edit</button>
+          <button onclick="deleteResident(${index})">Delete</button>
+        </td>
+      </tr>`;
+    });
+}
+</script>
+
+</body>
+</html>
